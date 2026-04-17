@@ -110,7 +110,7 @@
                          :key          :filter-regex
                          :short-name   #\r
                          :long-name    "filter-regex"
-                         :parameter    "STRING"
+                         :parameter    "FIELD-REGEX"
                          :description (format-as-lines
                                         "filter out bookmark using regex matching on field."
                                         "format: <field>/<regex>"
