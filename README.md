@@ -2,25 +2,7 @@
 
 Parses bookmarks from json or html format and filtering them based on function.
 
-### Features currently implemented:
-
-1.  Conversion between Netscape Bookmark File, JSON
-2.  Filtering out bookmarks based on regex
-3.  Filtering out duplicate bookmarks
-4.  Modifying bookmark based on regex
-
-### Features to be implemented:
-
-1.  Removing/ Modifying bookmarks with urls that no longer exist or return error (e.g. 403, 404, 500)
-2.  Binary Releases (for linux, windows, mac)
-
-# Installing:
-
-1.  clone repository
-2.  cd into repo and run `make`
-3.  run `./cl-bookmark-tool tool`
-
-# Using
+# Using:
 
 `cl-bookmark-tool tool` accepts the following options:
 
@@ -44,7 +26,11 @@ Parses bookmarks from json or html format and filtering them based on function.
                                         example: --filter-regex 'path/.*google[.]com.*'
 ```
 
+# Installing:
 
+1.  clone repository
+2.  cd into repo and run `make`
+3.  run `./cl-bookmark-tool tool`
 
 # Dependencies:
 You don't need to manually install dependencies. Dependencies are automatically installed by `make`, using quicklisp and asdf. Dependency `maximilian-utils` is cloned into repository as it's not (yet) available on quicklisp. Source code can be found on my github.
@@ -56,6 +42,19 @@ You don't need to manually install dependencies. Dependencies are automatically 
 5.  `yason` - handling json
 6.  `cl-ppcre` - regex library
 7.  `maximilian-utils` - utilities
+
+
+### Features currently implemented:
+
+1.  Conversion between Netscape Bookmark File, JSON
+2.  Filtering out bookmarks based on regex
+3.  Filtering out duplicate bookmarks
+4.  Modifying bookmark based on regex
+
+### Features to be implemented:
+
+1.  Removing/ Modifying bookmarks with urls that no longer exist or return error (e.g. 403, 404, 500)
+2.  Binary Releases (for linux, windows, mac)
 
 # License
 
