@@ -20,7 +20,7 @@ Parses bookmarks from json or html format and filtering them based on function.
                                         Example: --modify 'path/[?][=][0-9]+$/?=0'
 
 -o, --output-file <FILE>                output file
--r, --filter-regex <STRING>             filter out bookmark using regex matching on field.
+-r, --filter-regex <FIELD-REGEX>        filter out bookmark using regex matching on field.
                                         format: <field>/<regex>
                                         allowed fields: path, url, host, proto, folder-path, name
                                         example: --filter-regex 'path/.*google[.]com.*'
