@@ -4,7 +4,7 @@
 APP_SYSTEM = cl-bookmark-tool
 BINARY_NAME = cl-bookmark-tool
 
-DEP_URL = git@github.com:ediw8311xht/maximilian-utils.git
+DEP_URL = https://github.com/ediw8311xht/maximilian-utils.git
 DEP_DIR = libs/maximilian-utils
 
 .PHONY: all deps build clean clean-deps
