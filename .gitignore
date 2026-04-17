@@ -1,0 +1,14 @@
+tags
+test.sh
+*.fasl
+*.html
+*.json
+*.txt
+OLD/
+bookmark-parser
+build/
+cl-bookmark-tool
+libs/
+subprojects/my-utils/
+test-files/*
+tmp/
