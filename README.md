@@ -2,10 +2,14 @@
 
 Parses bookmarks from json or html format and filtering them based on function.
 
-# Using:
+## Usage:
 
-`cl-bookmark-tool tool` accepts the following options:
 
+``` bash
+cl-bookmark-tool tool <OPTS> -i <INPUT-FILE> -o <OUTPUT-FILE>
+```
+
+### Options:
 ``` shell
 --help                                  display usage information and exit
 --overwrite                             overwrite output file
@@ -26,14 +30,22 @@ Parses bookmarks from json or html format and filtering them based on function.
                                         example: --filter-regex 'path/.*google[.]com.*'
 ```
 
-# Installing:
+## Installing:
 
+#### Before building
+You don't need to manually install dependencies, just ensure you have `sbcl` and `quicklisp` installed and set up. 
+
+- sbcl: https://www.sbcl.org/platform-table.html
+- quicklisp: https://www.quicklisp.org/beta/#installation
+
+#### Building
 1.  clone repository
 2.  cd into repo and run `make`
 3.  run `./cl-bookmark-tool tool`
 
-# Dependencies:
-You don't need to manually install dependencies. Dependencies are automatically installed by `make`, using quicklisp and asdf. Dependency `maximilian-utils` is cloned into repository as it's not (yet) available on quicklisp. Source code can be found on my github.
+### Dependencies:
+
+Dependencies can be found in the [quicklisp repo](https://github.com/quicklisp/quicklisp-projects/tree/master/projects), excluding  `maximilian-utils`, which is hosted on github ([link](https://github.com/ediw8311xht/maximilian-utils/)).
 
 1.  `quicklisp` - remote package installing/handling
 2.  `asdf` - system/package configuration
@@ -44,17 +56,19 @@ You don't need to manually install dependencies. Dependencies are automatically 
 7.  `maximilian-utils` - utilities
 
 
-### Features currently implemented:
+
+## Features
+#### Currently implemented:
 
 1.  Conversion between Netscape Bookmark File, JSON
 2.  Filtering out bookmarks based on regex
 3.  Filtering out duplicate bookmarks
-4.  Modifying bookmark based on regex
+4.  Modifying bookmark fields based on regex
 
-### Features to be implemented:
-
+#### In Progress:
 1.  Removing/ Modifying bookmarks with urls that no longer exist or return error (e.g. 403, 404, 500)
-2.  Binary Releases (for linux, windows, mac)
+2.  Binary Releases (order of importance: linux, mac, windows)
+3.  Extracting/pushing using browser database directly
 
 # License
 
