@@ -44,9 +44,10 @@ Parses bookmarks from json or html format and filtering them based on function.
                                         example: --filter-regex 'path/.*google[.]com.*'
 ```
 
-You don't need to manually install dependencies. Dependencies are automatically installed by `make`, using quicklisp and asdf. Dependency `maximilian-utils` is cloned into repository as it's not (yet) available on quicklisp. Source code can be found on my github.
+
 
 # Dependencies:
+You don't need to manually install dependencies. Dependencies are automatically installed by `make`, using quicklisp and asdf. Dependency `maximilian-utils` is cloned into repository as it's not (yet) available on quicklisp. Source code can be found on my github.
 
 1.  `quicklisp` - remote package installing/handling
 2.  `asdf` - system/package configuration
