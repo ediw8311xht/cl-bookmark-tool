@@ -64,15 +64,15 @@
   - Description: Types not specified by order are called first. Then each type as specified by order.
 
   "
-  (let ((sub-filters-alist (create-plist order)))
+  (let ((sub-filters-plist (create-plist order)))
     (loop for (func . args) in sub-filters
           for func-type = (get func :type)
-          do (push (apply #'bind func args) (getf sub-filters-alist func-type)))
+          do (push (apply #'bind func args) (getf sub-filters-plist func-type)))
     (if (not sub-filters)
         #'cons
         #'(lambda (bookmark output)
             (loop with bmark = bookmark
-                  for (fn-type fn-list) on sub-filters-alist by #'cddr
+                  for (fn-type fn-list) on sub-filters-plist by #'cddr
                   for res = (sub-filter-handler fn-type fn-list bmark output)
                   if res
                     do (setf bmark res)

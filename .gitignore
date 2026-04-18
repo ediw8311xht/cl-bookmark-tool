@@ -10,5 +10,4 @@ build/
 cl-bookmark-tool
 libs/
 subprojects/my-utils/
-test-files/*
 tmp/
