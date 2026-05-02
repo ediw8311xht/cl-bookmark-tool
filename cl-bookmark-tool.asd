@@ -1,7 +1,7 @@
 
 (asdf:defsystem #:cl-bookmark-tool
   :author  "Maximilian Ballard"
-  :version "0.1.0"
+  :version "0.1.1"
   :license "GPLv3"
   :depends-on (
                :uiop     ; files
@@ -34,8 +34,9 @@
   :depends-on (
                :cl-bookmark-tool
                :fiveam   ; testing framework
-               :uiop     ; for getting/reading system files
-               :cl-ppcre ; for checking for occurrences of string in output/file
+               :uiop     ; getting/reading system files
+               :cl-ppcre ; checking for occurrences of string in output/file
+               ;:plump    ; checking elements in output/file
                )
   :serial t
   :components ((:module "tests"

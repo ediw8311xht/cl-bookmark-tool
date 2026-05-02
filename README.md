@@ -30,6 +30,14 @@ cl-bookmark-tool tool <OPTS> -i <INPUT-FILE> -o <OUTPUT-FILE>
                                         example: --filter-regex 'path/.*google[.]com.*'
 ```
 
+Note on fields: 
+- `{url}` = `{proto}{host}{path}`
+- example: 
+  - `url   = "https://www.example.com/abcd/wer?=someattr"`
+  - `proto = "https://"`
+  - `host  = "www.example.com"`
+  - `path  = "/abcd/wer?=someattr"`
+
 ## Installing:
 
 #### Before building

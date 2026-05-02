@@ -2,28 +2,31 @@
 (in-package :cl-bookmark-tool)
 
 (defparameter *HTML-NODE*
-  (ppcre:create-scanner "([^<]|\\r|\\n)*?  # group 1: any extra characters before tag
-                         <                 #
-                         ([^>\ ]+)         # group 2: tag name
-                         ([^>]*?)          # group 3: attributes
-                         >                 #
-                         (([^<]|\\r|\\n)*) # group 4: text of element or proceeding characters" 
-                     :case-insensitive-mode t :multi-line-mode t :extended-mode t))
+  (ppcre:create-scanner 
+    "([^<]|\\r|\\n)*?  # group 1: any extra characters before tag
+     <                 #
+     ([^>\ ]+)         # group 2: tag name
+     ([^>]*?)          # group 3: attributes
+     >                 #
+     (([^<]|\\r|\\n)*) # group 4: text of element or proceeding characters" 
+     :case-insensitive-mode t :multi-line-mode t :extended-mode t))
 (defparameter *HTML-COMMENT*
-  (ppcre:create-scanner "(<!--)
-                     (.|\\r|\\n)+?
-                     (-->)"
-                     :case-insensitive-mode t :multi-line-mode t :extended-mode t))
+  (ppcre:create-scanner
+    "(<!--)
+     (.|\\r|\\n)+?
+     (-->)"
+    :case-insensitive-mode t :multi-line-mode t :extended-mode t))
 (defparameter *HTML-ATTRIBUTE*
-  (ppcre:create-scanner "[\\s|\\r|\\n]*  # 
-                         ([^=\\s]+)      # group 1: attribute
-                         (               # group 2: checking if attribute has value 
-                            [=]          #   |
-                            (['\"])      #   | group 3: character for grouping value
-                            (.+?)        #   | group 4: attribute value
-                            (?<!\\\\)\\3 #
-                         )?              #"
-                     :case-insensitive-mode t :multi-line-mode t :extended-mode t))
+  (ppcre:create-scanner 
+    "[\\s|\\r|\\n]* # 
+    ([^=\\s]+)      # group 1: attribute
+    (               # group 2: checking if attribute has value 
+       [=]          #   |
+       (['\"])      #   | group 3: character for grouping value
+       (.+?)        #   | group 4: attribute value
+       (?<!\\\\)\\3 #
+    )?              #"
+    :case-insensitive-mode t :multi-line-mode t :extended-mode t))
 
 (defun clean-folder (folder) (remove #\/ folder))
 
@@ -38,7 +41,7 @@
     ((recurse-else (&rest args) (declare (ignore args)) t)
      (recurse-list (data folder-path)
        (dolist (el data) (recurse el folder-path)))
-     (recurse-hash-table (data folder-path
+     (recurse-hash-table (data folder-path 
                                &aux (data-type (gethash "type" data)))
        (cond
          ((string-equal "folder" data-type)
@@ -119,10 +122,11 @@
              (multiple-value-bind (el-type match-end el-info el-text) (next-element str :start current-pos)
                (setf current-pos (or match-end str-end-pos))
                (case el-type
-                 ; folder
+                 ; folder start
                  ((:H3 :H1) (push-folder el-text))
-                 ; bookmark
+                 ; folder end
                  ((:DL-END) (pop-folder))
+                 ; bookmark
                  (:A      (handle-bookmark el-info el-text))
                  ; we can ignore the other tags
                  (t nil))

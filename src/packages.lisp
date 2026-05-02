@@ -1,10 +1,6 @@
 
 (defpackage :clingon.extensions/regex-options
   (:use :cl)
-  (:import-from #:ppcre
-                #:register-groups-bind
-                #:scan-to-strings
-                )
   (:import-from #:clingon
                 #:option
                 #:initialize-option
@@ -25,21 +21,29 @@
                 #:defstruct-with-helpers
                 #:get-file-type
                 #:bind
+                #:bind-places
                 #:string-to-keyword)
   (:export #:bookmark-tool
+           ; parsers
            #:json-parse
            #:html-parse
+           ; conversion/output
            #:convert-out
            #:extract-bookmarks
            #:extract-bookmarks-file
+           ; filters
+           #:make-filter
            #:defun-sub-filter
+           #:sub-filter-handler
            #:sub-filter-duplicates
            #:sub-filter-regex
-           #:make-filter
+           ; for bookmark struct
            #:bookmark
-           #:bookmark-scheme
-           #:bookmark-host
+           #:bookmark-url
            #:bookmark-path
-           #:bookmark-name
-           #:bookmark-folder-path))
+           #:bookmark-proto
+           #:bookmark-folder-path
+           #:bookmark-slot
+           #:create-bookmark
+           ))
 

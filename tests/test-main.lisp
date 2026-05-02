@@ -1,6 +1,8 @@
 (defpackage :cl-bookmark-tool/tests
   (:use :cl)
   (:use :fiveam)
+  ;(:local-nicknames (:p :plump)
+  ;                  (:pd :plump-dom))
   (:import-from #:cl-bookmark-tool
                 #:bookmark-tool))
 
@@ -12,6 +14,22 @@
 (def-suite tool-testing
            :description "testing options"
            :in root-suite)
+
+#|
+for now matching with regex will work, this is similar (ableit extremely
+                                                               simplified)
+method that i use in cl-bookmark-tool. wish i could use plump (here and in
+                                                                    cl-bookmark-tool)
+but the netscape bookmark format isn't valid html and was creating issues,
+specifically with determining the correct folder path during parsing.
+|#
+(defparameter *BOOKMARK-SCAN*
+  (ppcre:create-scanner
+    "<A[^>]*HREF[=][^>]*>[^<]*</A>"
+    :case-insensitive-mode t :multi-line-mode t :extended-mode t))
+
+(defun count-bookmarks (string)
+  (ppcre:count-matches *BOOKMARK-SCAN* string))
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -30,26 +48,30 @@
     `(test ,name
        (let ((,in-file-g  ,input-file)
              (,out-file-g ,output-file))
-         (when ,clear-out (uiop:delete-file-if-exists ,out-file-g))
-         (funcall (lambda  ,@body) ,in-file-g ,out-file-g)))))
-
+         (funcall (lambda  ,@body) ,in-file-g ,out-file-g)
+         (when ,clear-out (uiop:delete-file-if-exists ,out-file-g))))))
 
 (test-with-file
-  (test-file-creation :input-file "test_1_33b.html")
+  (test-file-creation :input-file "test_1_33a.html")
 
   (in out)
   (bookmark-tool "tool" "-i" in "-o" out)
   (is (uiop:file-exists-p out))
-  (uiop:with-safe-io-syntax (:package :cl-bookmark-tool/tests)
-    (let ((lines (uiop:read-file-lines out)))
-      ;(is (= (length lines) 33))
-      ))
-  
-  )
-
+  (let ((target-bookmark-count 33)
+        (file-string (uiop:read-file-string out)))
+    (is (equal target-bookmark-count (count-bookmarks file-string)))))
 
 (test-with-file
-  (test-filter-regex :input-file "test_1_33b.html")
+  (test-filter-regex-host :input-file "test_1_33a.html")
   (in out)
-  (bookmark-tool "tool" "-i" in "-o" out)
-  (is (uiop:file-exists-p out)))
+  (bookmark-tool "tool" "-r" "host/^(.*[.])?google.com$" "-i" in "-o" out)
+  (is (uiop:file-exists-p out))
+  (let ((target-bookmark-count 31)
+        (file-string (uiop:read-file-string out)))
+    (is (equal target-bookmark-count (count-bookmarks file-string)))))
+
+;(uiop:with-safe-io-syntax (:package :cl-bookmark-tool/tests)
+;  (let ((lines (uiop:read-file-lines out)))
+;    ;(is (= (length lines) 33))
+;    ))
+

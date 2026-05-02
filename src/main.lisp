@@ -9,21 +9,23 @@
     (clingon:getopt args opt)
     *DEFAULT-PATHNAME-DEFAULTS*))
 
-(defun quit-with-message (exit-code &rest message)
-  (apply #'format t message)
-  (uiop:quit exit-code))
-
 (defun bookmark-tool (&rest args)
-  (let ((app (top-level/command)))
-    (clingon:run app args)))
+  "bookmark tool for non cli usage"
+  ; not using 'clingon:run since it exits lisp image on error/ command completion
+  (let* ((opts (clingon:parse-command-line (top-level/command) args))
+         (handler (slot-value opts 'CLINGON.COMMAND::handler)))
+    (funcall handler opts)))
 
 (defun io-main ()
+  "bookmark tool for cli"
   (let ((app (top-level/command)))
     (clingon:run app)))
 
-(defun bookmark-tool-r (input-file output-file &key (input-type "html") (output-type "html") sub-filters)
+(defun tool-runner (input-file output-file &key (input-type "html") (output-type "html") filter)
+  "parses bookmarks from input-file and writes them to output file
+  format of the input file/output file should be explicitly specified (default html)"
   (with-open-file (output output-file :direction :output :if-exists :supersede)
-    (let ((parsed-data (extract-bookmarks-file input-type input-file :filter sub-filters)))
+    (let ((parsed-data (extract-bookmarks-file input-type input-file :filter filter)))
       (convert-out output-type output parsed-data))))
 
 (defun tool/handler (args)
@@ -35,7 +37,8 @@
          (filter-regex-val  (clingon:getopt args :filter-regex))
          (modify-regex-val  (clingon:getopt args :modify-regex))
          (input-type        (get-file-type (namestring input-file)))
-         (output-type       (get-file-type (namestring output-file))))
+         (output-type       (get-file-type (namestring output-file)))
+         (debug-val         (clingon:getopt args :debug)))
     (labels
       ((parse-filter-regex (opt)
          (when opt
@@ -67,15 +70,21 @@
        (start-func ()
          (check-opts)
          (filter-from-opts)
-         (bookmark-tool-r input-file
-                          output-file
-                          :input-type input-type
-                          :output-type output-type
-                          :sub-filters (make-filter sub-filters))))
-      (start-func))))
+         (tool-runner input-file
+                      output-file
+                      :input-type input-type
+                      :output-type output-type
+                      :filter (make-filter sub-filters))))
+      (handler-case (start-func)
+        (error (c) (if debug-val (invoke-debugger c)
+                       (error c)))))))
 
 (defun tool/options ()
   (list
+    (clingon:make-option :boolean/true
+                         :key :debug
+                         :long-name "debug"
+                         :description "debug")
     #|----- required -----|#
     (clingon:make-option :filepath
                          :key         :input-file
@@ -115,7 +124,7 @@
                                         "filter out bookmark using regex matching on field."
                                         "format: <field>/<regex>"
                                         "allowed fields: path, url, host, proto, folder-path, name"
-                                        "example: --filter-regex 'path/.*google[.]com.*'"))
+                                        "example: --filter-regex 'host/google[.]com'"))
     #|----- modify -----|#
     (clingon:make-option :group-regex
                          :pattern      "^(path|url|host|proto|folder[-]path|name)[/](.*)[/](.*)$"
@@ -151,13 +160,31 @@
     :handler (lambda (cmd)
                (clingon:print-documentation :markdown (clingon:command-parent cmd) t))))
 
+(defun test/command ()
+  "Test system"
+  (clingon:make-command
+    :name "test"
+    :description "test system"
+    :usage ""
+    :handler (lambda (&rest rest) 
+               (declare (ignore rest))
+               (asdf:test-system :cl-bookmark-tool))))
+
+
+(defun top-level/handler (cmd)
+  "top level handler"
+  (clingon:print-usage-and-exit cmd t))
+
 (defun top-level/command ()
   (clingon:make-command
     :name "cl-bookmark-tool"
-    :version "0.1.0"
+    :handler #'top-level/handler
+    :version (slot-value (asdf:find-system "cl-bookmark-tool") 'asdf:version)
     :description "Tool for converting/modifying/filtering bookmarks"
     :authors '("Maximilian Ballard")
     :license "GPLv3"
     :sub-commands (list
                     (tool/command)
-                    (print-doc/command))))
+                    (print-doc/command)
+                    (test/command))))
+

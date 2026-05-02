@@ -8,7 +8,10 @@
                               ("^([^:]*[:][/]{2})([^/]*)(.*)$" url)
                               (values scheme host path)))
 
-(defstruct-with-helpers (bookmark (:with-get-set slot) (:export t))
+#| not using defstruct-with-helpers export since it can cause issues stale build
+   files with adsf:make
+|#
+(defstruct-with-helpers (bookmark (:with-get-set slot) (:export nil))
   "Bookmark information
 
   SCHEME:      url scheme
@@ -47,7 +50,7 @@ since url isn't a slot, I define it manually
         (bookmark-slot :path   obj :set-value path))
       (bookmark-url obj)))
 
-(defun create-bookmark (url &key (name "") (folder-path '()))
+(defun create-bookmark (url &key (name "") (folder-path ""))
   "create struct bookmark with url"
   (multiple-value-bind (scheme host path) (split-url url)
     (make-bookmark :scheme scheme :host host :path path :name name :folder-path folder-path)))

@@ -5,12 +5,14 @@
   "Used to create sub-filter function.
   Type corresponds to how the function is ran in the wrapper:
 
-  :independent (bookmark) -> t/nil
+  :independent (bookmark) -> bookmark/nil
   -    filter based on only the bookmark,
   -    takes only the bookmark as an argument
-  :relational  (bookmark, bookmark) -> t/nil
-  -    Use if you are filtering based on bookmark and other bookmarks in data-structure
+  :relational  (bookmark, bookmark) -> bookmark/nil
+  -    use if you are filtering based on bookmark and other bookmarks in data-structure
   -    takes the bookmark and bookmark to compare to
+  :modify (bookmark) -> bookmark/nil
+  -    the same as :independent except may modify the bookmark
   Other args may appear before, to be passed as list to `make-filter`.
   "
   (if (symbolp name)
@@ -32,12 +34,12 @@
 (defmethod sub-filter-handler ((type (eql :relational)) sub-filters bookmark output)
   (loop for bmark-i in output
         when (some #'(lambda (fn) (funcall fn bookmark bmark-i)) sub-filters)
-        return nil
-        finally (return bookmark)))
+          return nil
+        finally (return t)))
 
 (defmethod sub-filter-handler ((type (eql :independent)) sub-filters bookmark output)
   (declare (ignore output))
-  (when (notany #'(lambda (fn) (funcall fn bookmark)) sub-filters) bookmark))
+  (notany #'(lambda (fn) (funcall fn bookmark)) sub-filters))
 
 (defmethod sub-filter-handler ((type (eql :modify)) sub-filters bookmark output)
   (declare (ignore output))
@@ -54,15 +56,14 @@
   - Sub-filters should have :type specified on the property list so they are properly handled.
   - To specify additional arguments to be called with function pass as a list:
   e.g. (list 'function-name 1 2)
-  - Specify place of args by using '_ for unbinded args
-  e.g. (list 'function-name 1 '_ 2 '_)
+  - Specify place of args by using _ for unbinded args
+  e.g. (list 'function-name 1 _ 2 _)
 
 
   &key order - Order of functions to call
+  - Description: Types not specified by order are called first. Then each type as specified by order.
   - Default: '(:modify)
   - functions with :type :modify are called last
-  - Description: Types not specified by order are called first. Then each type as specified by order.
-
   "
   (let ((sub-filters-plist (create-plist order)))
     (loop for (func . args) in sub-filters
@@ -75,7 +76,7 @@
                   for (fn-type fn-list) on sub-filters-plist by #'cddr
                   for res = (sub-filter-handler fn-type fn-list bmark output)
                   if res
-                    do (setf bmark res)
+                    do (when (bookmark-p res) (setf bmark res))
                   else
                     return output
                   finally (return (cons bmark output)))))))
