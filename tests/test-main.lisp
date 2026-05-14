@@ -1,8 +1,6 @@
 (defpackage :cl-bookmark-tool/tests
   (:use :cl)
   (:use :fiveam)
-  ;(:local-nicknames (:p :plump)
-  ;                  (:pd :plump-dom))
   (:import-from #:cl-bookmark-tool
                 #:bookmark-tool))
 
@@ -38,38 +36,52 @@ specifically with determining the correct folder path during parsing.
       "cl-bookmark-tool/tests" (format nil "test-files/~A" f))))
 
 (defmacro test-with-file (name-and-options &body body)
+  "Handles creating fiveam test that deals with a file.
+   first argument is a list containing the name and keyword list of options
+
+   :default-lambda-args "
   (let* ((in-file-g   (gensym))
          (out-file-g   (gensym))
          (name         (first name-and-options))
          (options      (rest name-and-options))
          (input-file   (get-file (getf options :input-file)))
          (output-file  (get-file (getf options :output-file "testout.html")))
-         (clear-out    (getf options :clear-out   t)))
+         (clear-out    (getf options :clear-out   t))
+         (default-lambda-args (getf options :default-lambda-args nil))
+         )
     `(test ,name
        (let ((,in-file-g  ,input-file)
              (,out-file-g ,output-file))
-         (funcall (lambda  ,@body) ,in-file-g ,out-file-g)
+         ,(if default-lambda-args
+              `(funcall (lambda (infile outfile) ,@body) ,in-file-g ,out-file-g)
+              `(funcall (lambda ,@body) ,in-file-g ,out-file-g))
+         ;(funcall (lambda  ,@body) ,in-file-g ,out-file-g)
          (when ,clear-out (uiop:delete-file-if-exists ,out-file-g))))))
 
+(in-suite tool-testing)
 (test-with-file
-  (test-file-creation :input-file "test_1_33a.html")
-
-  (in out)
-  (bookmark-tool "tool" "-i" in "-o" out)
-  (is (uiop:file-exists-p out))
+  (test-file-creation :input-file "test_1_33a.html" :default-lambda-args t)
+  (bookmark-tool "tool" "-i" infile "-o" outfile)
+  (is (uiop:file-exists-p outfile))
   (let ((target-bookmark-count 33)
-        (file-string (uiop:read-file-string out)))
+        (file-string (uiop:read-file-string outfile)))
     (is (equal target-bookmark-count (count-bookmarks file-string)))))
 
 (test-with-file
-  (test-filter-regex-host :input-file "test_1_33a.html")
-  (in out)
-  (bookmark-tool "tool" "-r" "host/^(.*[.])?google.com$" "-i" in "-o" out)
-  (is (uiop:file-exists-p out))
+  (test-filter-regex-host :input-file "test_1_33a.html" :default-lambda-args t)
+  (bookmark-tool "tool" "-r" "host/^(.*[.])?google.com$" "-i" infile "-o" outfile)
+  (is (uiop:file-exists-p outfile))
   (let ((target-bookmark-count 31)
-        (file-string (uiop:read-file-string out)))
+        (file-string (uiop:read-file-string outfile)))
     (is (equal target-bookmark-count (count-bookmarks file-string)))))
 
+
+(test-with-file
+  (test-filter-missing :input-file "test_2_missing.html" :default-lambda-args t)
+  (bookmark-tool "tool" "--delete-missing" "-i" infile "-o" outfile)
+  (let ((target-bookmark-count 31)
+        (file-string (uiop:read-file-string outfile)))
+    (is (equal target-bookmark-count (count-bookmarks file-string)))))
 ;(uiop:with-safe-io-syntax (:package :cl-bookmark-tool/tests)
 ;  (let ((lines (uiop:read-file-lines out)))
 ;    ;(is (= (length lines) 33))

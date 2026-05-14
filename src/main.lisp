@@ -10,32 +10,38 @@
     *DEFAULT-PATHNAME-DEFAULTS*))
 
 (defun bookmark-tool (&rest args)
-  "bookmark tool for non cli usage"
+  "entry point for non cli usage"
   ; not using 'clingon:run since it exits lisp image on error/ command completion
   (let* ((opts (clingon:parse-command-line (top-level/command) args))
          (handler (slot-value opts 'CLINGON.COMMAND::handler)))
     (funcall handler opts)))
 
 (defun io-main ()
-  "bookmark tool for cli"
+  "entry point for cli"
   (let ((app (top-level/command)))
     (clingon:run app)))
 
 (defun tool-runner (input-file output-file &key (input-type "html") (output-type "html") filter)
   "parses bookmarks from input-file and writes them to output file
-  format of the input file/output file should be explicitly specified (default html)"
+  format of the input file/output file should be explicitly specified (default html).
+  :filter should be created with `make-filter`."
   (with-open-file (output output-file :direction :output :if-exists :supersede)
     (let ((parsed-data (extract-bookmarks-file input-type input-file :filter filter)))
       (convert-out output-type output parsed-data))))
 
 (defun tool/handler (args)
-  (let* ((sub-filters       '())
+  (let* (
+         ; required
          (input-file        (file-from-opts args :input-file))
          (output-file       (file-from-opts args :output-file))
+         ; filter
+         (sub-filters       '()) 
          (del-dupes-val     (clingon:getopt args :delete-duplicates))
-         (overwrite         (clingon:getopt args :overwrite-output))
+         (del-missing-val   (clingon:getopt args :delete-missing))
          (filter-regex-val  (clingon:getopt args :filter-regex))
          (modify-regex-val  (clingon:getopt args :modify-regex))
+         ; general
+         (overwrite         (clingon:getopt args :overwrite-output))
          (input-type        (get-file-type (namestring input-file)))
          (output-type       (get-file-type (namestring output-file)))
          (debug-val         (clingon:getopt args :debug)))
@@ -43,19 +49,21 @@
       ((parse-filter-regex (opt)
          (when opt
            (push
-             (list 'sub-filter-regex (maximilian-utils:string-to-keyword (aref opt 0)) (aref opt 1))
+             (list 'sub-filter-regex (string-to-keyword (aref opt 0)) (aref opt 1))
              sub-filters)))
        (parse-modify-regex (opt)
          (when opt 
            (push 
-             (list 'sub-filter-modify-regex (maximilian-utils:string-to-keyword (aref opt 0))
-                   (aref opt 1) (aref opt 2))
+             (list 'sub-filter-modify-regex (string-to-keyword (aref opt 0)) (aref opt 1) (aref opt 2))
              sub-filters)))
        (parse-delete-dupes (opt) 
          (when opt 
            (push 
-             (list 'sub-filter-duplicates (string-to-keyword del-dupes-val))
+             (list 'sub-filter-duplicates (string-to-keyword opt))
              sub-filters)))
+       (parse-delete-missing (opt)
+         (when opt
+           (push (list 'sub-filter-missing) sub-filters)))
        (check-opts () ; returns integer exit code on error otherwise nil
          (cond
            ((not (uiop:file-exists-p input-file))
@@ -66,7 +74,8 @@
        (filter-from-opts ()
          (parse-filter-regex filter-regex-val)
          (parse-modify-regex modify-regex-val)
-         (parse-delete-dupes del-dupes-val))
+         (parse-delete-dupes del-dupes-val)
+         (parse-delete-missing del-missing-val))
        (start-func ()
          (check-opts)
          (filter-from-opts)
@@ -81,10 +90,11 @@
 
 (defun tool/options ()
   (list
+    #|----- debugging ----|#
     (clingon:make-option :boolean/true
-                         :key :debug
-                         :long-name "debug"
-                         :description "debug")
+                         :key         :debug
+                         :long-name   "debug"
+                         :description "invoke debugger on error")
     #|----- required -----|#
     (clingon:make-option :filepath
                          :key         :input-file
@@ -100,12 +110,12 @@
                          :long-name   "output-file"
                          :description "output file"
                          :parameter   "FILE")
-    #|----- general ----|#
+    #|----- general ------|#
     (clingon:make-option :flag
                          :key         :overwrite-output
                          :long-name   "overwrite"
                          :description "overwrite output file")
-    #|----- filter -----|#
+    #|----- filter -------|#
     (clingon:make-option :choice
                          :key         :delete-duplicates
                          :short-name  #\d
@@ -125,6 +135,13 @@
                                         "format: <field>/<regex>"
                                         "allowed fields: path, url, host, proto, folder-path, name"
                                         "example: --filter-regex 'host/google[.]com'"))
+    (clingon:make-option :boolean/true
+                         :key         :delete-missing
+                         :long-name   "delete-missing"
+                         :description (format-as-lines
+                                        "filter out bookmarks in which the url returns error code (e.g. 404, 405)"
+                                        "only checks for uri's with protocol: http/https."
+                                        "uris with other protocols (e.g. file://, chrome://) aren't checked or removed."))
     #|----- modify -----|#
     (clingon:make-option :group-regex
                          :pattern      "^(path|url|host|proto|folder[-]path|name)[/](.*)[/](.*)$"
