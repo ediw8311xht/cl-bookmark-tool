@@ -1,7 +1,7 @@
 
 (asdf:defsystem #:cl-bookmark-tool
   :author  "Maximilian Ballard"
-  :version "0.1.1"
+  :version "1.1"
   :license "GPLv3"
   :depends-on (
                :uiop     ; files
