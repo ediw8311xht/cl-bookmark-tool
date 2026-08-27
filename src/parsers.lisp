@@ -35,42 +35,41 @@
 -- JSON -----------------
 -------------------------
 |#
-(defun json-parse (input-table &key filter
-                               &aux output)
-  (labels
-    ((recurse-else (&rest args) (declare (ignore args)) t)
-     (recurse-list (data folder-path)
-       (dolist (el data) (recurse el folder-path)))
-     (recurse-hash-table (data folder-path 
-                               &aux (data-type (gethash "type" data)))
-       (cond
-         ((string-equal "folder" data-type)
-          (recurse (gethash "children" data)
-                   (concatenate 'string folder-path (clean-folder (gethash "name" data)) "/")))
-         ((string-equal "url" data-type)
-          (let* ((url (gethash  "url" data))
-                 (name (gethash "name" data))
-                 (bookmark (create-bookmark url :name name :folder-path folder-path)))
-            (setf output (funcall filter bookmark output))))
-         (t
-          (maphash #'(lambda (key value)
-                       (declare (ignore key))
-                       (recurse value folder-path))
-                   data))))
-     (recurse (data folder-path)
-       (typecase data
-         (hash-table (recurse-hash-table data folder-path))
-         (list       (recurse-list       data folder-path))
-         (t          (recurse-else       data folder-path)))))
+(defun json-parse (input-table &key work-queue)
+ (labels
+  ((recurse-else (&rest args) (declare (ignore args)) t)
+   (recurse-list (data folder-path)
+    (dolist (el data) (recurse el folder-path)))
+   (recurse-hash-table (data folder-path 
+                        &aux (data-type (gethash "type" data)))
+    (cond
+     ((string-equal "folder" data-type)
+      (recurse (gethash "children" data)
+       (concatenate 'string folder-path (clean-folder (gethash "name" data)) "/")))
+     ((string-equal "url" data-type)
+      (let* ((url (gethash  "url" data))
+             (name (gethash "name" data))
+             (bookmark (create-bookmark url :name name :folder-path folder-path)))
+       (setf output (funcall work-queue bookmark output))))
+     (t
+      (maphash #'(lambda (key value)
+                  (declare (ignore key))
+                  (recurse value folder-path))
+       data))))
+   (recurse (data folder-path)
+    (typecase data
+     (hash-table (recurse-hash-table data folder-path))
+     (list       (recurse-list       data folder-path))
+     (t          (recurse-else       data folder-path)))))
 
-    (recurse input-table "")
-    output))
+  (recurse input-table "")))
 
 #|
 -------------------------
 -- HTML -----------------
 -------------------------
 |#
+
 (defun html-remove-extra (str) (ppcre:regex-replace-all *HTML-COMMENT* str ""))
 
 (defun subseq-create (str start end &key (default ""))
@@ -98,7 +97,7 @@
           (subseq-create str (aref group-start 3) (aref group-end 3))
           (extract-bookmark-href str :start match-end)))))
 
-(defun html-parse (str &key filter)
+(defun html-parse (str &key work-queue)
   (let ((str (html-remove-extra str))
         (current-pos 0)
         (str-end-pos (length str))
@@ -111,7 +110,7 @@
          (setf folder-path (ppcre:regex-replace "[^/]*[/]$" folder-path "")))
        (handle-bookmark (info text) 
          (setf output 
-               (funcall filter 
+               (funcall work-queue 
                         (create-bookmark (extract-bookmark-href info) 
                                          :name text 
                                          :folder-path folder-path)
@@ -151,6 +150,11 @@
 
 (defmethod extract-bookmarks ((data-type (eql :html)) string-data &key filter)
   (html-parse string-data :filter filter))
+
+
+(defmethod extract-bookmarks :around (data-type string-data &key filter)
+  "handles multi threading pipeline"
+  (pprint "IH"))
 
 (defun extract-bookmarks-file (data-type file &key filter)
   "Wraps extract-bookmark, handles detection of data type and reading in the file.

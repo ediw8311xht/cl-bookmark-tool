@@ -13,18 +13,15 @@
                )
   :serial t
   :components ((:module "src"
-                :components
-                ((:file "packages")
-                 (:file "structs")
-                 (:file "filters")
-                 (:file "parsers")
-                 (:file "writers")
-                 (:file "option-parsing")
-                 (:file "main"   )
-                 ))
+                :components ((:file "packages")
+                             (:file "structs")
+                             (:file "filters")
+                             (:file "parsers")
+                             (:file "writers")
+                             (:file "option-parsing")
+                             (:file "main"   )))
                (:static-file "LICENSE" :pathname #P"LICENSE")
-               (:static-file "README.md" :pathname #P"README.md")
-               )
+               (:static-file "README.md" :pathname #P"README.md"))
   :description "Tool to convert and filter bookmarks.
   Supported input/output: json, netscape bookmark file"
   :long-description #.(uiop:read-file-string  (merge-pathnames "README.md" *load-pathname*))
@@ -42,13 +39,10 @@
                )
   :serial t
   :components ((:module "tests"
-                :components
-                ((:file "test-main")
-                 ))
+                :components ((:file "test-main")))
                (:module "test-files"
                 :components ((:static-file "test_1_33b.html")
-                             (:static-file "test_2_missing.html")
-                             )))
+                             (:static-file "test_2_missing.html"))))
   :description "Testing cl-bookmark-tool"
   :perform (test-op (o c) (symbol-call :fiveam '#:run-all-tests)))
 

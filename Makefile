@@ -7,6 +7,7 @@ TEST_SYSTEM = cl-bookmark-tool/tests
 BINARY_NAME = cl-bookmark-tool
 
 DEP_URL = https://github.com/ediw8311xht/maximilian-utils.git
+DEP_VERSION = 1.1
 DEP_DIR = libs/maximilian-utils
 
 .PHONY: all deps build clean-all clean clean-deps
@@ -19,7 +20,7 @@ deps:
  @mkdir -p libs
  @if [ ! -d "$(DEP_DIR)" ] ; then \
   echo "Make: Cloning dependency..."; \
-  git clone $(DEP_URL) $(DEP_DIR); \
+  git clone $(DEP_URL) --branch $(DEP_VERSION) $(DEP_DIR); \
  else \
   echo "Make: Updating dependency..."; \
   cd "$(DEP_DIR)" && git pull; \
