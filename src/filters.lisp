@@ -86,17 +86,21 @@
 (defun-sub-filter
   :relational
   sub-filter-duplicates (field bmark bmark2)
+
   (compare-field-bookmark field bmark bmark2))
 
 (defun-sub-filter
   :independent
   sub-filter-regex (field regex bmark)
+
   (ppcre:scan regex (bookmark-slot field bmark)))
 
 (defun-sub-filter
   :modify
   sub-filter-modify-regex (field match replace bmark)
-  (bookmark-slot field bmark
-                 :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
+
+  (bookmark-slot 
+    field bmark
+    :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
   bmark)
 

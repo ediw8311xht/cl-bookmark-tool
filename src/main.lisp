@@ -43,7 +43,8 @@
       ((parse-filter-regex (opt)
          (when opt
            (push
-             (list 'sub-filter-regex (maximilian-utils:string-to-keyword (aref opt 0)) (aref opt 1))
+             (list 'sub-filter-regex (maximilian-utils:string-to-keyword (aref opt 0)) 
+                   (aref opt 1))
              sub-filters)))
        (parse-modify-regex (opt)
          (when opt 
