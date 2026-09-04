@@ -133,11 +133,7 @@
       (rec)
       (dotimes (_ workers) (push-queue *poison-pill* work-queue)))))
 (defgeneric parse-bookmarks-to-queue (data-type string-data &key workers work-queue *poison-pill*)
-  (:documentation "Handle extraction of bookmarks from a string of data.
-   Output: output of the extracted bookmarks (list or hash-table).
-   data-type: keyword denoting type of data to parse (html or json). (or lisp ) to-do
-   string-data: data to parse.
-   work-queue: excludes bookmarks from being added if returns non nil"))
+  (:documentation "Handle extraction of bookmarks from a string of data, pushing into work-queue."))
 
 (defmethod parse-bookmarks-to-queue ((data-type (eql :json)) string-data &key workers work-queue (*poison-pill* *poison-pill*))
   (let ((json-table  (yason:parse string-data)))
