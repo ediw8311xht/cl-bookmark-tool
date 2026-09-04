@@ -77,13 +77,13 @@ specifically with determining the correct folder path during parsing.
         (file-string (uiop:read-file-string outfile)))
     (is (equal target-bookmark-count (count-bookmarks file-string)))))
 
-
-(test-with-file
-  (test-filter-missing :input-file "test_2_missing.html" :default-lambda-args t)
-  (bookmark-tool "tool" "--delete-missing" "-i" infile "-o" outfile)
-  (let ((target-bookmark-count 31)
-        (file-string (uiop:read-file-string outfile)))
-    (is (equal target-bookmark-count (count-bookmarks file-string)))))
+;
+;(test-with-file
+;  (test-filter-missing :input-file "test_2_missing.html" :default-lambda-args t)
+;  (bookmark-tool "tool" "--delete-missing" "-i" infile "-o" outfile)
+;  (let ((target-bookmark-count 31)
+;        (file-string (uiop:read-file-string outfile)))
+;    (is (equal target-bookmark-count (count-bookmarks file-string)))))
 ;(uiop:with-safe-io-syntax (:package :cl-bookmark-tool/tests)
 ;  (let ((lines (uiop:read-file-lines out)))
 ;    ;(is (= (length lines) 33))

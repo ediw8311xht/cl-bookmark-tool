@@ -28,15 +28,16 @@
          (setf (get ',name :type) ,type)
          ',name)
       (let ((e-name (gensym)))
-        `(let ((,e-name (intern (string-upcase,name))))
+        `(let ((,e-name (intern (string-upcase ,name))))
            (setf (symbol-function ,e-name) (lambda ,args ,@body))
-           (setf (get ',e-name :type) ,type)
-           ',e-name))))
+           (setf (get ,e-name :type) ,type)
+           ,e-name))))
 
 (defgeneric sub-filter-handler (type sub-filters bookmark &optional output)
   (:documentation "handles specific types of bookmark sub-filters.
    returns nil if any sub-filters are true (to be sorted out)
-   otherwise bookmark (to be added)"))
+   returns bookmark   modify
+   otherwise t"))
 
 ;; relational
 (defmethod sub-filter-handler 
@@ -93,7 +94,6 @@
   "
   (let* ((sub-filters-plist  (create-plist order))
          (conc-filters       nil)
-         (main-workers       workers)
          (work-queue         (make-queue))
          (out-queue          (make-queue))
          (with-rest-filters  nil)
@@ -107,7 +107,7 @@
             do (setf with-rest-filters t)
                (push (apply #'bind func args) (getf sub-filters-plist func-type)))
     
-    (flet ((rest-filter (bookmark output) 
+    (let ((rest-filter
              (if (not with-rest-filters)
                  #'cons
                  #'(lambda (bookmark output)
@@ -118,9 +118,9 @@
                            do (when (bookmark-p res) (setf bmark res))
                            else
                            return output
-                           finally (return (cons bmark output)))))))  
+                           finally (return (cons bmark output)))))))
 
-      (loop repeat main-workers
+      (loop repeat workers
             collect (lparallel:future
                       (loop for popped = (pop-queue work-queue)
                             until (equal popped *poison-pill*)
@@ -130,19 +130,19 @@
       (values 
         work-queue
         (lparallel:future
-          (loop with workers-left = main-workers
+          (loop with workers-left = workers
                 with output = nil
                 while (> workers-left 0)
-                for popped in (pop-queue out-queue)
+                for popped = (pop-queue out-queue)
                   if (eql popped *poison-pill*) do (decf workers-left)
-                  else do (pprint "HERE") ; (setf output (funcall #'rest-filter bookmark output))
+                  else do (setf output (funcall rest-filter popped output))
                   finally (return output)))))))
 
 #| Provided sub-filters |#
 
 #|---- relational -----|#
 (defun-sub-filter :relational
-                  sub-filter-duplicates (field bmark bmark2)
+                  "sub-filter-duplicates" (field bmark bmark2)
                   (compare-field-bookmark field bmark bmark2))
 
 #|---- independent ----|#
@@ -150,9 +150,10 @@
                   sub-filter-regex (field regex bmark)
                   (ppcre:scan regex (bookmark-slot field bmark)))
 
-(defun-sub-filter :independent
+(defun-sub-filter :concurrent
                   sub-filter-missing (bmark)
                   (declare (ignore bmark))
+                  t
                   ; https://edicl.github.io/drakma/#http-request
                   ;(let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
                   ;  (< status-code 400))
