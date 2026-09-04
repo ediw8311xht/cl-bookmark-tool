@@ -1,6 +1,8 @@
 
 (in-package :cl-bookmark-tool)
 
+(defparameter *POISON-PILL* (gensym "POISON-PILL"))
+
 (defun split-url (url)
   "split url into scheme host path
   \"https://www.google.com/ihategoogle/\" -> (\"https://\" \"www.google.com\" \"/ihategoogle/\") "

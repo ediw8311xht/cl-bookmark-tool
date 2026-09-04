@@ -1,25 +1,26 @@
 
 (asdf:defsystem #:cl-bookmark-tool
   :author  "Maximilian Ballard"
-  :version "1.1"
+  :version "0.2.0"
   :license "GPLv3"
   :depends-on (
-               :uiop     ; files
-               :clingon  ; option handling
-               :cl-ppcre ; regex filtering
-               :yason    ; json parsing
+               :uiop      ; files
+               :dexador   ; querying bookmarks
+               :lparallel ; concurrency for filters
+               :clingon   ; option handling
+               :cl-ppcre  ; regex filtering
+               :yason     ; json parsing
                :maximilian-utils ; general utilities
                )
   :serial t
   :components ((:module "src"
-                :components
-                ((:file "packages")
-                 (:file "structs")
-                 (:file "filters")
-                 (:file "parsers")
-                 (:file "writers")
-                 (:file "option-parsing")
-                 (:file "main"   )))
+                :components ((:file "packages")
+                             (:file "structs")
+                             (:file "filters")
+                             (:file "parsers")
+                             (:file "writers")
+                             (:file "option-parsing")
+                             (:file "main"   )))
                (:static-file "LICENSE" :pathname #P"LICENSE")
                (:static-file "README.md" :pathname #P"README.md"))
   :description "Tool to convert and filter bookmarks.
@@ -33,17 +34,16 @@
 (asdf:defsystem #:cl-bookmark-tool/tests
   :depends-on (
                :cl-bookmark-tool
-               :fiveam   ; testing framework
                :uiop     ; getting/reading system files
                :cl-ppcre ; checking for occurrences of string in output/file
-               ;:plump    ; checking elements in output/file
+               :fiveam   ; testing framework
                )
   :serial t
   :components ((:module "tests"
-                :components
-                ((:file "test-main")))
+                :components ((:file "test-main")))
                (:module "test-files"
-                :components ((:static-file "test_1_33b.html"))))
+                :components ((:static-file "test_1_33b.html")
+                             (:static-file "test_2_missing.html"))))
   :description "Testing cl-bookmark-tool"
   :perform (test-op (o c) (symbol-call :fiveam '#:run-all-tests)))
 

@@ -35,42 +35,43 @@
 -- JSON -----------------
 -------------------------
 |#
-(defun json-parse (input-table &key filter
-                               &aux output)
-  (labels
-    ((recurse-else (&rest args) (declare (ignore args)) t)
-     (recurse-list (data folder-path)
-       (dolist (el data) (recurse el folder-path)))
-     (recurse-hash-table (data folder-path 
-                               &aux (data-type (gethash "type" data)))
-       (cond
-         ((string-equal "folder" data-type)
-          (recurse (gethash "children" data)
-                   (concatenate 'string folder-path (clean-folder (gethash "name" data)) "/")))
-         ((string-equal "url" data-type)
-          (let* ((url (gethash  "url" data))
-                 (name (gethash "name" data))
-                 (bookmark (create-bookmark url :name name :folder-path folder-path)))
-            (setf output (funcall filter bookmark output))))
-         (t
-          (maphash #'(lambda (key value)
-                       (declare (ignore key))
-                       (recurse value folder-path))
-                   data))))
-     (recurse (data folder-path)
-       (typecase data
-         (hash-table (recurse-hash-table data folder-path))
-         (list       (recurse-list       data folder-path))
-         (t          (recurse-else       data folder-path)))))
+(defun json-parse (input-table &key workers work-queue (*poison-pill* *poison-pill*))
+ (labels
+  ((recurse-else (&rest args) (declare (ignore args)) t)
+   (recurse-list (data folder-path)
+    (dolist (el data) (recurse el folder-path)))
+   (recurse-hash-table (data folder-path 
+                        &aux (data-type (gethash "type" data)))
+    (cond
+     ((string-equal "folder" data-type)
+      (recurse (gethash "children" data)
+       (concatenate 'string folder-path (clean-folder (gethash "name" data)) "/")))
+     ((string-equal "url" data-type)
+      (let* ((url (gethash  "url" data))
+             (name (gethash "name" data))
+             (bookmark (create-bookmark url :name name :folder-path folder-path)))
+       (push-queue bookmark work-queue)))
+     (t
+      (maphash #'(lambda (key value)
+                  (declare (ignore key))
+                  (recurse value folder-path))
+       data))))
+   (recurse (data folder-path)
+    (typecase data
+     (hash-table (recurse-hash-table data folder-path))
+     (list       (recurse-list       data folder-path))
+     (t          (recurse-else       data folder-path)))))
 
-    (recurse input-table "")
-    output))
+  (recurse input-table "")
+  (dotimes (_ workers) (push-queue *poison-pill* work-queue))   
+  ))
 
 #|
 -------------------------
 -- HTML -----------------
 -------------------------
 |#
+
 (defun html-remove-extra (str) (ppcre:regex-replace-all *HTML-COMMENT* str ""))
 
 (defun subseq-create (str start end &key (default ""))
@@ -98,11 +99,10 @@
           (subseq-create str (aref group-start 3) (aref group-end 3))
           (extract-bookmark-href str :start match-end)))))
 
-(defun html-parse (str &key filter)
+(defun html-parse (str &key workers work-queue (*poison-pill* *poison-pill*))
   (let ((str (html-remove-extra str))
         (current-pos 0)
         (str-end-pos (length str))
-        (output      nil)
         (folder-path ""))
     (labels
       ((push-folder (new-folder)
@@ -110,15 +110,14 @@
        (pop-folder ()
          (setf folder-path (ppcre:regex-replace "[^/]*[/]$" folder-path "")))
        (handle-bookmark (info text) 
-         (setf output 
-               (funcall filter 
-                        (create-bookmark (extract-bookmark-href info) 
-                                         :name text 
-                                         :folder-path folder-path)
-                        output)))
+         (push-queue (create-bookmark (extract-bookmark-href info) 
+                                      :name text 
+                                      :folder-path folder-path)
+                     work-queue  
+                     ))
        (rec ()
          (if (>= current-pos str-end-pos)
-             output
+             nil
              (multiple-value-bind (el-type match-end el-info el-text) (next-element str :start current-pos)
                (setf current-pos (or match-end str-end-pos))
                (case el-type
@@ -132,29 +131,51 @@
                  (t nil))
                (rec)))))
       (rec)
-      output)))
+      (dotimes (_ workers) (push-queue *poison-pill* work-queue)))))
+(defgeneric parse-bookmarks-to-queue (data-type string-data &key workers work-queue *poison-pill*)
+  (:documentation "Handle extraction of bookmarks from a string of data.
+   Output: output of the extracted bookmarks (list or hash-table).
+   data-type: keyword denoting type of data to parse (html or json). (or lisp ) to-do
+   string-data: data to parse.
+   work-queue: excludes bookmarks from being added if returns non nil"))
+
+(defmethod parse-bookmarks-to-queue ((data-type (eql :json)) string-data &key workers work-queue (*poison-pill* *poison-pill*))
+  (let ((json-table  (yason:parse string-data)))
+    (json-parse json-table 
+                :workers workers 
+                :work-queue work-queue                 :*poison-pill* *poison-pill*)))
+
+(defmethod parse-bookmarks-to-queue ((data-type (eql :html)) string-data &key workers work-queue (*poison-pill* *poison-pill*))
+  (html-parse string-data 
+              :workers workers 
+              :work-queue work-queue 
+              :*poison-pill* *poison-pill*))
+
 #|
 -------------------------
 -- ENTRY ----------------
 -------------------------
 |#
-(defgeneric extract-bookmarks (data-type string-data &key filter)
-  (:documentation "Handle extraction of bookmarks from a string of data.
-   Output: output of the extracted bookmarks (list or hash-table).
-   data-type: keyword denoting type of data to parse (html or json). (or lisp ) to-do
-   string-data: data to parse.
-   filter: excludes bookmarks from being added if returns non nil"))
 
-(defmethod extract-bookmarks ((data-type (eql :json)) string-data &key filter)
-  (let ((json-table  (yason:parse string-data)))
-    (json-parse json-table :filter filter)))
+(defun extract-bookmarks (data-type string-data 
+                                    &key sub-filters 
+                                    (workers 10) 
+                                    (*poison-pill* *poison-pill*)
+                                    )
 
-(defmethod extract-bookmarks ((data-type (eql :html)) string-data &key filter)
-  (html-parse string-data :filter filter))
+  (let ((lparallel:*kernel* (lparallel:make-kernel (+ workers 1)))
+        (output nil)) 
+    (unwind-protect (multiple-value-bind (work-queue aggregate) 
+                      (make-filter sub-filters :workers workers :*poison-pill* *poison-pill*)
 
-(defun extract-bookmarks-file (data-type file &key filter)
+                      (parse-bookmarks-to-queue data-type string-data :workers workers :work-queue work-queue :*poison-pill* *poison-pill*)
+                      (setf output (lparallel:force aggregate)))
+      (lparallel:end-kernel)
+      )))
+
+(defun extract-bookmarks-file (data-type file &key sub-filters)
   "Wraps extract-bookmark, handles detection of data type and reading in the file.
   Alternatively, user may manually provide data-type using :filetype"
   (let ((string-data (uiop:read-file-string file)))
-    (extract-bookmarks data-type string-data :filter filter)))
+    (extract-bookmarks data-type string-data :sub-filters sub-filters)))
 
