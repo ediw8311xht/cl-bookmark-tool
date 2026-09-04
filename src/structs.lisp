@@ -4,11 +4,11 @@
 (defparameter *POISON-PILL* (gensym "POISON-PILL"))
 
 (defun split-url (url)
-  "split url into scheme host path
+  "split url into proto host path
   \"https://www.google.com/ihategoogle/\" -> (\"https://\" \"www.google.com\" \"/ihategoogle/\") "
-  (ppcre:register-groups-bind (scheme host path)
+  (ppcre:register-groups-bind (proto host path)
                               ("^([^:]*[:][/]{2})([^/]*)(.*)$" url)
-                              (values scheme host path)))
+                              (values proto host path)))
 
 #| not using defstruct-with-helpers export since it can cause issues stale build
    files with adsf:make
@@ -16,19 +16,19 @@
 (defstruct-with-helpers (bookmark (:with-get-set slot) (:export nil))
   "Bookmark information
 
-  SCHEME:      url scheme
+  proto:      url proto
   HOST:        url host
   PATH:        url path
   NAME:        bookmark name
   FOLDER-PATH: folder path of bookmark
 
   Example:
-      SCHEME:        \"https://\"
+      proto:        \"https://\"
       HOST:          \"example.com\"
       PATH:          \"/something/here\"
       NAME:          \"An Example\"
       FOLDER-PATH:   \"/Programming/Examples/\""
-  (scheme      "https://" :type string)
+  (proto      "https://" :type string)
   (host        ""         :type string)
   (path        ""         :type string)
   (name        ""         :type string)
@@ -36,7 +36,7 @@
 
 (defun bookmark-url (bmark)
   (format nil "~A~A~A"
-          (bookmark-scheme bmark)
+          (bookmark-proto bmark)
           (bookmark-host   bmark)
           (bookmark-path   bmark)))
 
@@ -46,16 +46,16 @@ since url isn't a slot, I define it manually
 |#
 (defmethod bookmark-slot ((slot (eql :url)) obj &key set-value)
   (if set-value
-      (multiple-value-bind (scheme host path) (split-url set-value)
-        (bookmark-slot :scheme obj :set-value scheme)
+      (multiple-value-bind (proto host path) (split-url set-value)
+        (bookmark-slot :proto obj :set-value proto)
         (bookmark-slot :host   obj :set-value host)
         (bookmark-slot :path   obj :set-value path))
       (bookmark-url obj)))
 
 (defun create-bookmark (url &key (name "") (folder-path ""))
   "create struct bookmark with url"
-  (multiple-value-bind (scheme host path) (split-url url)
-    (make-bookmark :scheme scheme :host host :path path :name name :folder-path folder-path)))
+  (multiple-value-bind (proto host path) (split-url url)
+    (make-bookmark :proto proto :host host :path path :name name :folder-path folder-path)))
 
 (defun compare-field-bookmark (field bmark bmark2)
   (equal (bookmark-slot field bmark)
