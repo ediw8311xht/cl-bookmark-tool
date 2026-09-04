@@ -1,7 +1,7 @@
 
 (in-package :cl-bookmark-tool)
 
-(defparameter *POISON-PILL* (gensym "POISON-PILL") )
+(defparameter *POISON-PILL* (gensym "POISON-PILL"))
 
 (defun split-url (url)
   "split url into scheme host path

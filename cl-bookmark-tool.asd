@@ -5,11 +5,11 @@
   :license "GPLv3"
   :depends-on (
                :uiop      ; files
+               :dexador   ; querying bookmarks
+               :lparallel ; concurrency for filters
                :clingon   ; option handling
                :cl-ppcre  ; regex filtering
                :yason     ; json parsing
-               :dexador   ; querying bookmarks
-               :lparallel ; concurrency for filters
                :maximilian-utils ; general utilities
                )
   :serial t
@@ -26,7 +26,7 @@
   :description "Tool to convert and filter bookmarks.
   Supported input/output: json, netscape bookmark file"
   :long-description #.(uiop:read-file-string  (merge-pathnames "README.md" *load-pathname*))
-  ;:in-order-to ((test-op (test-op "cl-bookmark-tool/tests")))
+  :in-order-to ((test-op (test-op "cl-bookmark-tool/tests")))
   :build-operation program-op
   :build-pathname "cl-bookmark-tool"
   :entry-point "cl-bookmark-tool::io-main")
@@ -34,9 +34,9 @@
 (asdf:defsystem #:cl-bookmark-tool/tests
   :depends-on (
                :cl-bookmark-tool
-               :fiveam   ; testing framework
                :uiop     ; getting/reading system files
                :cl-ppcre ; checking for occurrences of string in output/file
+               :fiveam   ; testing framework
                )
   :serial t
   :components ((:module "tests"

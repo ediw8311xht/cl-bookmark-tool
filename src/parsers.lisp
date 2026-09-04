@@ -63,7 +63,7 @@
      (t          (recurse-else       data folder-path)))))
 
   (recurse input-table "")
-  (dotimes (_ workers) (push-queue *poison-pilll* work-queue))   
+  (dotimes (_ workers) (push-queue *poison-pill* work-queue))   
   ))
 
 #|
@@ -131,8 +131,8 @@
                  (t nil))
                (rec)))))
       (rec)
-      (dotimes (_ workers) (push-queue *poison-pilll* work-queue)))))
-(defgeneric parse-bookmarks-to-queue (data-type string-data &key workers work-queue (*poison-pill* *poison-pill*))
+      (dotimes (_ workers) (push-queue *poison-pill* work-queue)))))
+(defgeneric parse-bookmarks-to-queue (data-type string-data &key workers work-queue *poison-pill*)
   (:documentation "Handle extraction of bookmarks from a string of data.
    Output: output of the extracted bookmarks (list or hash-table).
    data-type: keyword denoting type of data to parse (html or json). (or lisp ) to-do
@@ -143,8 +143,7 @@
   (let ((json-table  (yason:parse string-data)))
     (json-parse json-table 
                 :workers workers 
-                :work-queue work-queue 
-                :*poison-pill* *poison-pill*)))
+                :work-queue work-queue                 :*poison-pill* *poison-pill*)))
 
 (defmethod parse-bookmarks-to-queue ((data-type (eql :html)) string-data &key workers work-queue (*poison-pill* *poison-pill*))
   (html-parse string-data 
@@ -164,11 +163,15 @@
                                     (*poison-pill* *poison-pill*)
                                     )
 
-  (multiple-value-bind (work-queue aggregate) 
-    (make-filter sub-filters :workers workers :*poison-pill* *poison-pill*)
+  (let ((lparallel:*kernel* (lparallel:make-kernel (+ workers 1)))
+        (output nil)) 
+    (unwind-protect (multiple-value-bind (work-queue aggregate) 
+                      (make-filter sub-filters :workers workers :*poison-pill* *poison-pill*)
 
-    (parse-bookmarks-to-queue data-type string-data :workers workers :work-queue work-queue :*poison-pill* *poison-pill*)
-    (lparallel:force aggregate)))
+                      (parse-bookmarks-to-queue data-type string-data :workers workers :work-queue work-queue :*poison-pill* *poison-pill*)
+                      (setf output (lparallel:force aggregate)))
+      (lparallel:end-kernel)
+      )))
 
 (defun extract-bookmarks-file (data-type file &key sub-filters)
   "Wraps extract-bookmark, handles detection of data type and reading in the file.

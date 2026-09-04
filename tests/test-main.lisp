@@ -1,3 +1,5 @@
+(in-package :cl-user)
+
 (defpackage :cl-bookmark-tool/tests
   (:use :cl)
   (:use :fiveam)
