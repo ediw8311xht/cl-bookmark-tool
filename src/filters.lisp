@@ -153,12 +153,14 @@
 (defun-sub-filter :concurrent
                   sub-filter-missing (bmark)
                   (declare (ignore bmark))
-                  (let ((value (nth-value 1
-                                 (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
-                                   (error (c)
-                                          (declare (ignore c))
-                                          (values 0 0))))))
-                    (or (< value 200) (> value 300))))
+                  (when (member (bookmark-scheme bmark) '("https://" "http://") :test #'string-equal) 
+                    (let ((value 
+                            (nth-value 1
+                                       (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
+                                         (error (c) 
+                                                (declare (ignore c)) 
+                                                (values 0 0))))))
+                      (or (< value 200) (> value 300)))))
 
 #|---- modify ---------|#
 (defun-sub-filter :modify
