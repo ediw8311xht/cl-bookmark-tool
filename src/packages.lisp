@@ -23,6 +23,11 @@
                 #:bind
                 #:bind-places
                 #:string-to-keyword)
+  (:import-from #:lparallel.queue
+                #:make-queue
+                #:pop-queue
+                #:push-queue
+                )
   (:export #:io-main       ; cli entry point
            #:bookmark-tool ; non-cli entry point
            #:tool-runner   ; run tool manually without option parsing

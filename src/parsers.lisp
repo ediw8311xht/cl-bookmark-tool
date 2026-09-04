@@ -137,24 +137,25 @@
 -- ENTRY ----------------
 -------------------------
 |#
-(defgeneric extract-bookmarks (data-type string-data &key filter)
+(defgeneric parse-bookmarks-to-queue (data-type string-data &key work-queue)
   (:documentation "Handle extraction of bookmarks from a string of data.
    Output: output of the extracted bookmarks (list or hash-table).
    data-type: keyword denoting type of data to parse (html or json). (or lisp ) to-do
    string-data: data to parse.
-   filter: excludes bookmarks from being added if returns non nil"))
+   work-queue: excludes bookmarks from being added if returns non nil"))
 
-(defmethod extract-bookmarks ((data-type (eql :json)) string-data &key filter)
+(defmethod parse-bookmarks-to-queue ((data-type (eql :json)) string-data &key work-queue)
   (let ((json-table  (yason:parse string-data)))
-    (json-parse json-table :filter filter)))
+    (json-parse json-table :work-queue work-queue)))
 
-(defmethod extract-bookmarks ((data-type (eql :html)) string-data &key filter)
-  (html-parse string-data :filter filter))
+(defmethod parse-bookmarks-to-queue ((data-type (eql :html)) string-data &key work-queue)
+  (html-parse string-data :work-queue work-queue))
 
 
-(defmethod extract-bookmarks :around (data-type string-data &key filter)
-  "handles multi threading pipeline"
-  (pprint "IH"))
+(defun extract-bookmarks (data-type string-data &key filter)
+  
+
+  )
 
 (defun extract-bookmarks-file (data-type file &key filter)
   "Wraps extract-bookmark, handles detection of data type and reading in the file.

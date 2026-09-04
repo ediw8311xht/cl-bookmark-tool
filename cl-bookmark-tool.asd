@@ -4,11 +4,12 @@
   :version "0.1.1"
   :license "GPLv3"
   :depends-on (
-               :uiop     ; files
-               :clingon  ; option handling
-               :cl-ppcre ; regex filtering
-               :yason    ; json parsing
-               :drakma   ; querying bookmarks
+               :uiop      ; files
+               :clingon   ; option handling
+               :cl-ppcre  ; regex filtering
+               :yason     ; json parsing
+               :dexador   ; querying bookmarks
+               :lparallel ; concurrency for filters
                :maximilian-utils ; general utilities
                )
   :serial t

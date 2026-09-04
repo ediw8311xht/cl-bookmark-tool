@@ -1,6 +1,8 @@
 
 (in-package :cl-bookmark-tool)
 
+(defparameter *POISON-PILL* (gensym "POISON-PILL") )
+
 (defmacro defun-sub-filter (type name args &body body)
   "Used to create sub-filter function.
   Type corresponds to how the function is ran in the wrapper:
@@ -52,6 +54,10 @@
   (declare (ignore output))
   (reduce #'(lambda (bmark func) (funcall func bmark)) sub-filters :initial-value bookmark))
 
+(defmethod sub-filter-handler ((type (eql :concurrent)) sub-filters bookmark (output nil))
+  (declare (ignore output))
+  (every #'(lambda (fn) (funcall fn bookmark)) sub-filters))
+
 (defmethod sub-filter-handler ((type null) sub-filters bookmark output)
   (declare (ignore sub-filters bookmark output))
   (error "No :type for symbol set on property list."))
@@ -60,7 +66,8 @@
   (declare (ignore sub-filters bookmark output))
   (error "No handler for :type '~S'." type))
 
-(defun make-filter (sub-filters &key (order '(:modify)))
+
+(defun make-filter (sub-filters &key (workers 10) (order '(:modify)) (*poison-pill* *poison-pill*))
   "Handles calling of sub-filters and modification function.
 
   required_arg sub-filters - list of sub-filters
@@ -74,45 +81,75 @@
   - Default: '(:modify)
   - functions with :type :modify are called last
   "
-  (let ((sub-filters-plist (create-plist order)))
+  (let* ((sub-filters-plist  (create-plist order))
+         (conc-filters       nil)
+         (lparallel:*kernel* (lparallel:make-kernel (+1 workers)))
+         (main-workers       workers)
+         (work-queue         (lparallel.queue:make-queue))
+         (out-queue          (lparallel.queue:make-queue))
+         )
     (loop for sub in sub-filters
           for (func . args) = (if (listp sub) sub (list sub))
           for func-type = (get func :type)
-          do (push (apply #'bind func args) (getf sub-filters-plist func-type)))
-    (if (not sub-filters)
-        #'cons
-        #'(lambda (bookmark output)
-            (loop with bmark = bookmark
-                  for (fn-type fn-list) on sub-filters-plist by #'cddr
-                  for res = (sub-filter-handler fn-type fn-list bmark output)
-                  if res
-                    do (when (bookmark-p res) (setf bmark res))
-                  else
-                    return output
-                  finally (return (cons bmark output)))))))
+          if (equal func-type :concurrent)
+            do (push (apply #'bind func args) conc-filters)
+          else
+            do (push (apply #'bind func args) (getf sub-filters-plist func-type)))
+    
+    (flet ((rest-filter (if (not sub-filters)
+                            #'cons
+                            #'(lambda (bookmark output)
+                                (loop with bmark = bookmark
+                                      for (fn-type fn-list) on sub-filters-plist by #'cddr
+                                      for res = (sub-filter-handler fn-type fn-list bmark output)
+                                        if res
+                                          do (when (bookmark-p res) (setf bmark res))
+                                        else
+                                          return output
+                                        finally (return (cons bmark output)))))))  
+
+      (loop repeat main-workers
+            collect (future
+                      (loop for popped = (pop-queue work-queue)
+                            until (equal popped *poison-pill*)
+                            when (sub-filter-handler :concurrent conc-filters popped)
+                            do (push-queue popped out-queue)
+                            finally (push-queue *poison-pill* out-queue)))) 
+      (lparallel:future
+        (loop with workers-left main-workers
+              with output = nil
+              while (> workers-left 0)
+              for popped in (pop-queue out-queue)
+                if (eql popped *poison-pill*) do (decf workers-left)
+                else do (setf output (rest-filter bookmark output))
+                finally (return output)))
+
+      )
+
+    ))
 
 #| Provided sub-filters |#
 
 #|---- relational -----|#
 (defun-sub-filter :relational
-  sub-filter-duplicates (field bmark bmark2)
-  (compare-field-bookmark field bmark bmark2))
+                  sub-filter-duplicates (field bmark bmark2)
+                  (compare-field-bookmark field bmark bmark2))
 
 #|---- independent ----|#
 (defun-sub-filter :independent
-  sub-filter-regex (field regex bmark)
-  (ppcre:scan regex (bookmark-slot field bmark)))
+                  sub-filter-regex (field regex bmark)
+                  (ppcre:scan regex (bookmark-slot field bmark)))
 
 (defun-sub-filter :independent
-  sub-filter-missing (bmark)
-  ; https://edicl.github.io/drakma/#http-request
-  (let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
-    (< status-code 400)))
+                  sub-filter-missing (bmark)
+                  ; https://edicl.github.io/drakma/#http-request
+                  (let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
+                    (< status-code 400)))
 
 #|---- modify ---------|#
 (defun-sub-filter :modify
-  sub-filter-modify-regex (field match replace bmark)
-  (bookmark-slot field bmark
-                 :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
-  bmark)
+                  sub-filter-modify-regex (field match replace bmark)
+                  (bookmark-slot field bmark
+                                 :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
+                  bmark)
 
