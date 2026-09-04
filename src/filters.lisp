@@ -153,8 +153,12 @@
 (defun-sub-filter :concurrent
                   sub-filter-missing (bmark)
                   (declare (ignore bmark))
-                  (multiple-value-bind (body status) (dex:head (bookmark-url bmark) :connect-timeout 5)
-                    (/= status 200)))
+                  (let ((value (nth-value 1
+                                 (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
+                                   (error (c)
+                                          (declare (ignore c))
+                                          (values 0 0))))))
+                    (or (< value 200) (> value 300))))
 
 #|---- modify ---------|#
 (defun-sub-filter :modify
@@ -162,4 +166,5 @@
                   (bookmark-slot field bmark
                                  :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
                   bmark)
+
 

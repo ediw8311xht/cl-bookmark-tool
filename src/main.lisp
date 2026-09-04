@@ -35,7 +35,7 @@
          (input-file        (file-from-opts args :input-file))
          (output-file       (file-from-opts args :output-file))
          ; filter
-         (sub-filters       '()) 
+         (sub-filters       '())
          (del-dupes-val     (clingon:getopt args :delete-duplicates))
          (del-missing-val   (clingon:getopt args :delete-missing))
          (filter-regex-val  (clingon:getopt args :filter-regex))
@@ -52,13 +52,13 @@
              (list 'sub-filter-regex (string-to-keyword (aref opt 0)) (aref opt 1))
              sub-filters)))
        (parse-modify-regex (opt)
-         (when opt 
-           (push 
+         (when opt
+           (push
              (list 'sub-filter-modify-regex (string-to-keyword (aref opt 0)) (aref opt 1) (aref opt 2))
              sub-filters)))
-       (parse-delete-dupes (opt) 
-         (when opt 
-           (push 
+       (parse-delete-dupes (opt)
+         (when opt
+           (push
              (list 'sub-filter-duplicates (string-to-keyword opt))
              sub-filters)))
        (parse-delete-missing (opt)
@@ -85,7 +85,8 @@
                       :output-type output-type
                       :sub-filters sub-filters)))
       (handler-case (start-func)
-        (error (c) (if debug-val (invoke-debugger c)
+        (error (c) (if debug-val
+                       (invoke-debugger c)
                        (error c)))))))
 
 (defun tool/options ()
@@ -183,7 +184,7 @@
     :name "test"
     :description "test system"
     :usage ""
-    :handler (lambda (&rest rest) 
+    :handler (lambda (&rest rest)
                (declare (ignore rest))
                (asdf:test-system :cl-bookmark-tool))))
 
