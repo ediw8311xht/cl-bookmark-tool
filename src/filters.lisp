@@ -1,8 +1,6 @@
 
 (in-package :cl-bookmark-tool)
 
-(defparameter *POISON-PILL* (gensym "POISON-PILL") )
-
 (defmacro defun-sub-filter (type name args &body body)
   "Used to create sub-filter function.
   Type corresponds to how the function is ran in the wrapper:
@@ -20,8 +18,8 @@
 
 
   Return values from sub-filter:
-  -          t: add bookmark to output
-  -        nil: don't add bookmark to output
+  -          t: don't add bookmark to output 
+  -        nil: add bookmark to output
   -   bookmark: (only with type :modify) add returned bookmark to output
   "
   (if (symbolp name)
@@ -37,7 +35,7 @@
 
 (defgeneric sub-filter-handler (type sub-filters bookmark output)
   (:documentation "handles specific types of bookmark sub-filters.
-   returns nil if any sub-filters are false (to be sorted out)
+   returns nil if any sub-filters are true (to be sorted out)
    otherwise bookmark (to be added)"))
 
 (defmethod sub-filter-handler ((type (eql :relational)) sub-filters bookmark output)
@@ -56,7 +54,9 @@
 
 (defmethod sub-filter-handler ((type (eql :concurrent)) sub-filters bookmark (output nil))
   (declare (ignore output))
-  (every #'(lambda (fn) (funcall fn bookmark)) sub-filters))
+  (or 
+    (not sub-filters
+      (notany #'(lambda (fn) (funcall fn bookmark)) sub-filters))))
 
 (defmethod sub-filter-handler ((type null) sub-filters bookmark output)
   (declare (ignore sub-filters bookmark output))
@@ -81,9 +81,9 @@
   - Default: '(:modify)
   - functions with :type :modify are called last
   "
-  (let* ((sub-filters-plist  (create-plist order))
+  (let* ((lparallel:*kernel* (lparallel:make-kernel (+1 workers)))
+         (sub-filters-plist  (create-plist order))
          (conc-filters       nil)
-         (lparallel:*kernel* (lparallel:make-kernel (+1 workers)))
          (main-workers       workers)
          (work-queue         (lparallel.queue:make-queue))
          (out-queue          (lparallel.queue:make-queue))
@@ -96,7 +96,7 @@
           else
             do (push (apply #'bind func args) (getf sub-filters-plist func-type)))
     
-    (flet ((rest-filter (if (not sub-filters)
+    (flet ((rest-filter (if (not sub-filters-plist)
                             #'cons
                             #'(lambda (bookmark output)
                                 (loop with bmark = bookmark
@@ -112,21 +112,19 @@
             collect (future
                       (loop for popped = (pop-queue work-queue)
                             until (equal popped *poison-pill*)
-                            when (sub-filter-handler :concurrent conc-filters popped)
-                            do (push-queue popped out-queue)
-                            finally (push-queue *poison-pill* out-queue)))) 
-      (lparallel:future
-        (loop with workers-left main-workers
-              with output = nil
-              while (> workers-left 0)
-              for popped in (pop-queue out-queue)
-                if (eql popped *poison-pill*) do (decf workers-left)
-                else do (setf output (rest-filter bookmark output))
-                finally (return output)))
-
-      )
-
-    ))
+                              when (sub-filter-handler :concurrent conc-filters popped)
+                                do (push-queue popped out-queue)
+                              finally (push-queue *poison-pill* out-queue)))) 
+      (values 
+        work-queue
+        (lparallel:future
+          (loop with workers-left main-workers
+                with output = nil
+                while (> workers-left 0)
+                for popped in (pop-queue out-queue)
+                  if (eql popped *poison-pill*) do (decf workers-left)
+                  else do (setf output (rest-filter bookmark output))
+                  finally (return output)))))))
 
 #| Provided sub-filters |#
 
@@ -143,8 +141,10 @@
 (defun-sub-filter :independent
                   sub-filter-missing (bmark)
                   ; https://edicl.github.io/drakma/#http-request
-                  (let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
-                    (< status-code 400)))
+                  ;(let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
+                  ;  (< status-code 400))
+                  
+                  )
 
 #|---- modify ---------|#
 (defun-sub-filter :modify

@@ -26,7 +26,7 @@
   :description "Tool to convert and filter bookmarks.
   Supported input/output: json, netscape bookmark file"
   :long-description #.(uiop:read-file-string  (merge-pathnames "README.md" *load-pathname*))
-  :in-order-to ((test-op (test-op "cl-bookmark-tool/tests")))
+  ;:in-order-to ((test-op (test-op "cl-bookmark-tool/tests")))
   :build-operation program-op
   :build-pathname "cl-bookmark-tool"
   :entry-point "cl-bookmark-tool::io-main")

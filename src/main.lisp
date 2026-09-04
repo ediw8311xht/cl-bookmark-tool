@@ -21,12 +21,12 @@
   (let ((app (top-level/command)))
     (clingon:run app)))
 
-(defun tool-runner (input-file output-file &key (input-type "html") (output-type "html") filter)
+(defun tool-runner (input-file output-file &key (input-type "html") (output-type "html") sub-filters)
   "parses bookmarks from input-file and writes them to output file
   format of the input file/output file should be explicitly specified (default html).
   :filter should be created with `make-filter`."
   (with-open-file (output output-file :direction :output :if-exists :supersede)
-    (let ((parsed-data (extract-bookmarks-file input-type input-file :filter filter)))
+    (let ((parsed-data (extract-bookmarks-file input-type input-file :sub-filters sub-filters)))
       (convert-out output-type output parsed-data))))
 
 (defun tool/handler (args)
@@ -83,7 +83,7 @@
                       output-file
                       :input-type input-type
                       :output-type output-type
-                      :filter (make-filter sub-filters))))
+                      :sub-filters sub-filters)))
       (handler-case (start-func)
         (error (c) (if debug-val (invoke-debugger c)
                        (error c)))))))

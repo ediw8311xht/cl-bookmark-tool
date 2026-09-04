@@ -52,5 +52,6 @@
            #:bookmark-folder-path
            #:bookmark-slot
            #:create-bookmark
+           #:*poison-pill*
            ))
 
