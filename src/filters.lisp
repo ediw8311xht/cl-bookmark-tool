@@ -35,9 +35,9 @@
 
 (defgeneric sub-filter-handler (type sub-filters bookmark &optional output)
   (:documentation "handles specific types of bookmark sub-filters.
-   returns nil if any sub-filters are true (to be sorted out)
-   returns bookmark   modify
-   otherwise t"))
+   returns nil        remove
+   returns bookmark   set
+   returns t          keep"))
 
 ;; relational
 (defmethod sub-filter-handler 
@@ -153,12 +153,8 @@
 (defun-sub-filter :concurrent
                   sub-filter-missing (bmark)
                   (declare (ignore bmark))
-                  t
-                  ; https://edicl.github.io/drakma/#http-request
-                  ;(let ((status-code (nth-value 1 (drakma:http-request (bookmark-url bmark) :method :HEAD))))
-                  ;  (< status-code 400))
-                  
-                  )
+                  (multiple-value-bind (body status) (dex:head (bookmark-url bmark) :connect-timeout 5)
+                    (/= status 200)))
 
 #|---- modify ---------|#
 (defun-sub-filter :modify
