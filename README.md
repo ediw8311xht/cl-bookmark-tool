@@ -10,31 +10,50 @@ cl-bookmark-tool tool <OPTS> -i <INPUT-FILE> -o <OUTPUT-FILE>
 
 ### Options:
 
-```
-    --debug                             invoke debugger on error
-    --help                              display usage information and exit
-    --overwrite                         overwrite output file
-    --version                           display version and exit
-    --delete-missing                    filter out bookmarks in which the url returns error code (e.g. 404, 405)
-                                        only checks for uri's with protocol: http/https.
-                                        uris with other protocols (e.g. file://, chrome://) aren't checked or
-                                        removed.
--d, --delete-duplicates <CHOICE>        delete bookmarks with same value on field.
-                                        example: --delete-duplicates 'url'
-                                         [choices: url, host, path, name]
--i, --input-file <FILE>                 input file
--m, --modify-field-regex <FIELD-REGEX>  modify bookmark by field.
-                                        format: <field>/<find>/<replace>
-                                        allowed fields: path, url, host, proto, folder-path, name
-                                        example: --modify 'path/[?][=][0-9]+$/?=0'
+## General
 
--o, --output-file <FILE>                output file
--r, --filter-regex <FIELD-REGEX>        filter out bookmark using regex matching on field.
-                                        format: <field>/<regex>
-                                        allowed fields: path, url, host, proto, folder-path, name
-                                        example: --filter-regex 'host/google[.]com'
+```
+--debug        
+    invoke debugger on error
+--help         
+    display usage information and exit
+--version      
+    display version and exit
+--overwrite    
+    overwrite output file
+-i, --input-file  <FILE> 
+    input file
+-o, --output-file <FILE> 
+    output file
 ```
 
+## Filtering/Modifying
+
+```
+
+--delete-missing
+    filter out bookmarks in which the url doesn't return status code between 200 <= 299
+    only checks for uri's with protocol: http/https.
+    uris with other protocols (e.g. file://, chrome://) aren't checked or
+    removed.
+
+-d, --delete-duplicates <CHOICE>
+    delete bookmarks with same value on field.
+    example: --delete-duplicates 'url'
+    choices: url, host, path, name
+
+-m, --modify-field-regex <FIELD-REGEX>
+    modify bookmark by field.
+    format: <field>/<find>/<replace>
+    allowed fields: path, url, host, proto, folder-path, name
+    example: --modify 'path/[?][=][0-9]+$/?=0'
+
+-r, --filter-regex <FIELD-REGEX>
+    filter out bookmark using regex matching on field.
+    format: <field>/<regex>
+    allowed fields: path, url, host, proto, folder-path, name
+    example: --filter-regex 'host/google[.]com'
+```
 Note on fields:
 
 - `{url}` = `{proto}{host}{path}`
@@ -69,7 +88,8 @@ Dependencies can be found in the [quicklisp repo](https://github.com/quicklisp/q
 4.  `clingon` - option handling
 5.  `yason` - handling json
 6.  `cl-ppcre` - regex library
-7.  `maximilian-utils` - utilities
+7.  `lparallel` - concurrency
+8.  `maximilian-utils` - utilities
 
 ## Features
 
