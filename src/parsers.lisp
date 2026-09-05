@@ -152,7 +152,6 @@
 -- ENTRY ----------------
 -------------------------
 |#
-
 (defun extract-bookmarks (data-type string-data 
                                     &key sub-filters 
                                     (workers 10) 

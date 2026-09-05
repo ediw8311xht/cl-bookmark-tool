@@ -142,31 +142,30 @@
 
 #|---- relational -----|#
 (defun-sub-filter :relational
-                  "sub-filter-duplicates" (field bmark bmark2)
-                  (compare-field-bookmark field bmark bmark2))
+  "sub-filter-duplicates" (field bmark bmark2)
+  (compare-field-bookmark field bmark bmark2))
 
 #|---- independent ----|#
 (defun-sub-filter :independent
-                  sub-filter-regex (field regex bmark)
-                  (ppcre:scan regex (bookmark-slot field bmark)))
+  sub-filter-regex (field regex bmark)
+  (ppcre:scan regex (bookmark-slot field bmark)))
 
 (defun-sub-filter :concurrent
-                  sub-filter-missing (bmark)
-                  (declare (ignore bmark))
-                  (when (member (bookmark-scheme bmark) '("https://" "http://") :test #'string-equal) 
-                    (let ((value 
-                            (nth-value 1
-                                       (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
-                                         (error (c) 
-                                                (declare (ignore c)) 
-                                                (values 0 0))))))
-                      (or (< value 200) (> value 300)))))
+  sub-filter-missing (bmark)
+  (when (member (bookmark-scheme bmark) '("https://" "http://") :test #'string-equal) 
+    (let ((value 
+            (nth-value 1
+                       (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
+                         (error (c) 
+                                (declare (ignore c)) 
+                                (values 0 0))))))
+      (or (< value 200) (> value 300)))))
 
 #|---- modify ---------|#
 (defun-sub-filter :modify
-                  sub-filter-modify-regex (field match replace bmark)
-                  (bookmark-slot field bmark
-                                 :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
-                  bmark)
+  sub-filter-modify-regex (field match replace bmark)
+  (bookmark-slot field bmark
+                 :set-value (ppcre:regex-replace-all match (bookmark-slot field bmark) replace))
+  bmark)
 
 
