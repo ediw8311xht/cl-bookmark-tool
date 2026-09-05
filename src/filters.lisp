@@ -9,6 +9,8 @@
   :independent (bookmark) -> t/nil
   -    filter based on only the bookmark,
   -    takes only the bookmark as an argument
+  :concurrent (bookmark) -> t/nil
+  -    same as independent except run concurrently
   :relational  (bookmark, bookmark) -> t/nil
   -    use if you are filtering based on bookmark and other bookmarks in data-structure
   -    takes the bookmark and bookmark to compare to
@@ -71,6 +73,7 @@
     (not sub-filters)
     (notany #'(lambda (fn) (funcall fn bookmark)) sub-filters)))
 
+;; invalid type
 (defmethod sub-filter-handler 
   ((type t) 
    sub-filters bookmark &optional output)
@@ -86,11 +89,19 @@
   - To specify additional arguments to be called with function pass as a list:
   e.g. (list 'function-name 1 2)
 
+  for type :concurrent
+  - run concurrently before ALL other filters
 
-  &key order - Order of functions to call
+  &key order - Order of (non :concurrent) functions to call
   - Description: Types not specified by order are called first. Then each type as specified by order.
   - Default: '(:modify)
   - functions with :type :modify are called last
+
+  returns
+  (values 
+    work-queue ; where bookmarks should be pushed to be run through filtered]
+    aggregator ; [future] of the aggregator. run #'lparallel:force on to get ouptut list
+    )
   "
   (let* ((sub-filters-plist  (create-plist order))
          (conc-filters       nil)
@@ -107,6 +118,7 @@
             do (setf with-rest-filters t)
                (push (apply #'bind func args) (getf sub-filters-plist func-type)))
     
+    ;; define the filter function for non :concurrent sub-filters
     (let ((rest-filter
              (if (not with-rest-filters)
                  #'cons
@@ -120,6 +132,7 @@
                            return output
                            finally (return (cons bmark output)))))))
 
+      ;; worker queue (:concurrent)
       (loop repeat workers
             collect (lparallel:future
                       (loop for popped = (pop-queue work-queue)
@@ -151,11 +164,11 @@
   (ppcre:scan regex (bookmark-slot field bmark)))
 
 (defun-sub-filter :concurrent
-  sub-filter-missing (bmark)
+  sub-filter-missing (bmark &key (timeout 5))
   (when (member (bookmark-scheme bmark) '("https://" "http://") :test #'string-equal) 
     (let ((value 
             (nth-value 1
-                       (handler-case (dex:head (bookmark-url bmark) :connect-timeout 5)
+                       (handler-case (dex:head (bookmark-url bmark) :connect-timeout timeout)
                          (error (c) 
                                 (declare (ignore c)) 
                                 (values 0 0))))))
