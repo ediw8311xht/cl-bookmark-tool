@@ -69,9 +69,7 @@ Dependencies can be found in the [quicklisp repo](https://github.com/quicklisp/q
 4.  `clingon` - option handling
 5.  `yason` - handling json
 6.  `cl-ppcre` - regex library
-7.  `dexador`  - ensuring url exists
-8.  `lparallel` - concurrency
-9.  `maximilian-utils` - utilities
+7.  `maximilian-utils` - utilities
 
 ## Features
 
