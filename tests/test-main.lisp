@@ -9,11 +9,11 @@
 (in-package :cl-bookmark-tool/tests)
 
 (def-suite root-suite
-           :description "test bookmark-tool")
+  :description "test bookmark-tool")
 
 (def-suite tool-testing
-           :description "testing options"
-           :in root-suite)
+  :description "testing options"
+  :in root-suite)
 
 #|
 for now matching with regex will work, this is similar (ableit extremely
@@ -39,9 +39,9 @@ specifically with determining the correct folder path during parsing.
 
 (defmacro test-with-file (name-and-options &body body)
   "Handles creating fiveam test that deals with a file.
-   first argument is a list containing the name and keyword list of options
+  first argument is a list containing the name and keyword list of options
 
-   :default-lambda-args "
+  :default-lambda-args "
   (let* ((in-file-g   (gensym))
          (out-file-g   (gensym))
          (name         (first name-and-options))
@@ -77,15 +77,24 @@ specifically with determining the correct folder path during parsing.
         (file-string (uiop:read-file-string outfile)))
     (is (equal target-bookmark-count (count-bookmarks file-string)))))
 
+(test-with-file
+  (test-modify-proto :input-file "test_2_missing.html" :default-lambda-args t)
+  (bookmark-tool "tool" "-m" "proto/http:/https:" "-i" infile "-o" outfile)
+  (is (uiop:file-exists-p outfile))
+  (let ((target-bookmark-count 33)
+        (file-string (uiop:read-file-string outfile)))
+    (is (equal target-bookmark-count (count-bookmarks file-string)))
+    (is-false (ppcre:scan "HREF=\"http:\\/\\/" (uiop:read-file-string outfile)))))
+
 ;
 ;(test-with-file
 ;  (test-filter-missing :input-file "test_2_missing.html" :default-lambda-args t)
 ;  (bookmark-tool "tool" "--delete-missing" "-i" infile "-o" outfile)
 ;  (let ((target-bookmark-count 31)
-;        (file-string (uiop:read-file-string outfile)))
+         ;        (file-string (uiop:read-file-string outfile)))
 ;    (is (equal target-bookmark-count (count-bookmarks file-string)))))
 ;(uiop:with-safe-io-syntax (:package :cl-bookmark-tool/tests)
-;  (let ((lines (uiop:read-file-lines out)))
+   ;  (let ((lines (uiop:read-file-lines out)))
 ;    ;(is (= (length lines) 33))
 ;    ))
 

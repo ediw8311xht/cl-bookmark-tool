@@ -165,7 +165,7 @@
 
 (defun-sub-filter :concurrent
   sub-filter-missing (bmark &key (timeout 5))
-  (when (member (bookmark-scheme bmark) '("https://" "http://") :test #'string-equal) 
+  (when (member (bookmark-proto bmark) '("https://" "http://") :test #'string-equal) 
     (let ((value 
             (nth-value 1
                        (handler-case (dex:head (bookmark-url bmark) :connect-timeout timeout)
